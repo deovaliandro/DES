@@ -169,12 +169,13 @@ def encrypt(messages, internal_key):
             vector_a = xor_with_key(expand, internal_key[i])
             vector_b = s_box(vector_a)
             pb = permutation_function(vector_b, permutation_box)
-
+            # print(d(expand), d(vector_a), d(vector_b), d(pb))
             temp = right
             right = []
             for k in range(len(pb)):
                 right.append(pb[k] ^ left[k])
             left = temp
+            # print(d(left), d(right))
 
     raw = right + left
     final = permutation_function(raw, ip_inv)
@@ -186,23 +187,24 @@ def decrypt(messages, internal_key):
     messages = split_message(messages)
 
     for msg in messages:
-        permutation = permutation_function(msg, ip_inv)
+        permutation = permutation_function(msg, ip)
         left, right = permutation[:32], permutation[32:]
         
-        for i in range(15, 0, -1):
+        for i in range(15, -1, -1):
             expand = permutation_function(right, expansion)
             vector_a = xor_with_key(expand, internal_key[i])
             vector_b = s_box(vector_a)
             pb = permutation_function(vector_b, permutation_box)
-
+            # print(d(expand), d(vector_a), d(vector_b), d(pb))
             temp = right
             right = []
             for k in range(len(pb)):
                 right.append(pb[k] ^ left[k])
             left = temp
+            # print(d(left), d(right))
 
     raw = right + left
-    final = permutation_function(raw, ip)
+    final = permutation_function(raw, ip_inv)
 
     return "".join(str(x) for x in final)
 
@@ -214,6 +216,7 @@ key = key_builder(key_in_binary)
 
 message = open('message.txt', 'r').read()
 message = str2bin(message)
+
 print("Plaintext =",d(message))
 ciphertext = encrypt(message, key)
 print("Ciphertext =", ciphertext)
