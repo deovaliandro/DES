@@ -1,15 +1,34 @@
+ip = [58, 50, 42, 34, 26, 18, 10, 2, 60, 52, 44, 36, 28, 20, 12, 4,
+      62, 54, 46, 38, 30, 22, 14, 6, 64, 56, 48, 40, 32, 24, 16, 8,
+      57, 49, 41, 33, 25, 17, 9, 1, 59, 51, 43, 35, 27, 19, 11, 3,
+      61, 53, 45, 37, 29, 21, 13, 5, 63, 55, 47, 39, 31, 23, 15, 7]
+
+ip_inv = [40, 8, 48, 16, 56, 24, 64, 32, 39, 7, 47, 15, 55, 23, 63, 31,
+          38, 6, 46, 14, 54, 22, 62, 30, 37, 5, 45, 13, 53, 21, 61, 29,
+          36, 4, 44, 12, 52, 20, 60, 28, 35, 3, 43, 11, 51, 19, 59, 27,
+          34, 2, 42, 10, 50, 18, 58, 26, 33, 1, 41, 9, 49, 17, 57, 25]
+
+expansion = [32, 1, 2, 3, 4, 5, 4, 5, 6, 7, 8, 9,
+             8, 9, 10, 11, 12, 13, 12, 13, 14, 15, 16, 17,
+             16, 17, 18, 19, 20, 21, 20, 21, 22, 23, 24, 25,
+             24, 25, 26, 27, 28, 29, 28, 29, 30, 31, 32, 1]
+
+permutation_box = [16, 7, 20, 21, 29, 12, 28, 17, 1, 15, 23, 26, 5, 18, 31, 10,
+                   2, 8, 24, 14, 32, 27, 3, 9, 19, 13, 30, 6, 22, 11, 4, 25]
+
+
 # array of bit to string
 def d(lis):
     return "".join(str(x) for x in lis)
 
 
 # left shift rotate
-def rotate(data, n):
+def lsf(data, n):
     return data[n:] + data[:n]
 
 
 # string to binary
-def string_to_binary(msg):
+def str2bin(msg):
     dummy = []
     for i in range(len(msg)):
         bits = bin(ord(msg[i]))[2:]
@@ -32,7 +51,7 @@ def key_builder(ext_key):
     key_round = [1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1]
 
     raw_result = []
-    key = []
+    final_key = []
 
     for i in range(len(pc1)):
         raw_result.append(ext_key[pc1[i] - 1])
@@ -41,15 +60,15 @@ def key_builder(ext_key):
     right = raw_result[28:]
 
     for i in range(len(key_round)):
-        left = rotate(left, key_round[i])
-        right = rotate(right, key_round[i])
+        left = lsf(left, key_round[i])
+        right = lsf(right, key_round[i])
         ki = left + right
         aur = []
         for j in range(len(pc2)):
             aur.append(ki[pc2[j] - 1])
-        key.append(aur)
+        final_key.append(aur)
 
-    return key
+    return final_key
 
 
 def split_message(msg):
@@ -57,48 +76,26 @@ def split_message(msg):
     for i in range(0, len(msg), 64):
         msg_split.append(msg[:64])
 
-        # if len(msg_split[i]) < 64:
-        #     miss = 64 - len(msg_split[i])
-        #     padding = 0 * miss
-        #     msg_split[i].extend([b for b in padding])
+        if len(msg_split[i]) < 64:
+            miss = 64 - len(msg_split[i])
+            padding = str(0 * miss)
+            msg_split[i].extend([int(b) for b in padding])
 
     return msg_split
 
 
-def ip_permutation(msg):
-    ip = [58, 50, 42, 34, 26, 18, 10, 2,
-          60, 52, 44, 36, 28, 20, 12, 4,
-          62, 54, 46, 38, 30, 22, 14, 6,
-          64, 56, 48, 40, 32, 24, 16, 8,
-          57, 49, 41, 33, 25, 17, 9, 1,
-          59, 51, 43, 35, 27, 19, 11, 3,
-          61, 53, 45, 37, 29, 21, 13, 5,
-          63, 55, 47, 39, 31, 23, 15, 7]
-
+def permutation_function(msg, table):
     dummy = []
-    for i in range(len(ip)):
-        dummy.append(msg[ip[i] - 1])
+    for i in range(len(table)):
+        dummy.append(msg[table[i] - 1])
 
     return dummy
 
 
-def expand_function(right):
-    expansion = [32, 1, 2, 3, 4, 5, 4, 5, 6, 7, 8, 9,
-                 8, 9, 10, 11, 12, 13, 12, 13, 14, 15, 16, 17,
-                 16, 17, 18, 19, 20, 21, 20, 21, 22, 23, 24, 25,
-                 24, 25, 26, 27, 28, 29, 28, 29, 30, 31, 32, 1]
-
-    dummy = []
-    for i in range(len(expansion)):
-        dummy.append(right[expansion[i] - 1])
-
-    return dummy
-
-
-def xor_with_key(msg, key):
+def xor_with_key(msg, key_f):
     dummy = []
     for i in range(len(msg)):
-        dummy.append(msg[i] ^ key[i])
+        dummy.append(msg[i] ^ key_f[i])
 
     return dummy
 
@@ -160,35 +157,18 @@ def s_box(msg):
     return b
 
 
-def p_box(msg):
-    permutation_box = [16, 7, 20, 21, 29, 12, 28, 17, 1, 15, 23, 26, 5, 18, 31, 10,
-                       2, 8, 24, 14, 32, 27, 3, 9, 19, 13, 30, 6, 22, 11, 4, 25]
+def encrypt(messages, internal_key):
+    messages = split_message(messages)
 
-    pb = []
-
-    for k in range(len(permutation_box)):
-        pb.append(msg[permutation_box[k] - 1])
-
-    return pb
-
-
-def encrypt(msg):
-    ip_inv = [40, 8, 48, 16, 56, 24, 64, 32, 39, 7, 47, 15, 55, 23, 63, 31,
-              38, 6, 46, 14, 54, 22, 62, 30, 37, 5, 45, 13, 53, 21, 61, 29,
-              36, 4, 44, 12, 52, 20, 60, 28, 35, 3, 43, 11, 51, 19, 59, 27,
-              34, 2, 42, 10, 50, 18, 58, 26, 33, 1, 41, 9, 49, 17, 57, 25]
-
-    msg = split_message(string_to_binary(msg))
-
-    for msg in msg:
-        permutation = ip_permutation(msg)
+    for msg in messages:
+        permutation = permutation_function(msg, ip)
         left, right = permutation[:32], permutation[32:]
 
         for i in range(16):
-            expand = expand_function(right)
-            vector_a = xor_with_key(expand, Key[i])
+            expand = permutation_function(right, expansion)
+            vector_a = xor_with_key(expand, internal_key[i])
             vector_b = s_box(vector_a)
-            pb = p_box(vector_b)
+            pb = permutation_function(vector_b, permutation_box)
 
             temp = right
             right = []
@@ -196,19 +176,49 @@ def encrypt(msg):
                 right.append(pb[k] ^ left[k])
             left = temp
 
-    final = []
     raw = right + left
-    for j in range(len(raw)):
-        final.append(raw[ip_inv[j] - 1])
+    final = permutation_function(raw, ip_inv)
 
-    print("".join(str(x) for x in final))
+    return "".join(str(x) for x in final)
+
+
+def decrypt(messages, internal_key):
+    messages = split_message(messages)
+
+    for msg in messages:
+        permutation = permutation_function(msg, ip_inv)
+        left, right = permutation[:32], permutation[32:]
+        
+        for i in range(15, 0, -1):
+            expand = permutation_function(right, expansion)
+            vector_a = xor_with_key(expand, internal_key[i])
+            vector_b = s_box(vector_a)
+            pb = permutation_function(vector_b, permutation_box)
+
+            temp = right
+            right = []
+            for k in range(len(pb)):
+                right.append(pb[k] ^ left[k])
+            left = temp
+
+    raw = right + left
+    final = permutation_function(raw, ip)
+
+    return "".join(str(x) for x in final)
 
 
 # open key
 externalKey = open('pass.txt', 'r').read()
-result = string_to_binary(externalKey)
-Key = key_builder(result)
+key_in_binary = str2bin(externalKey)
+key = key_builder(key_in_binary)
 
 message = open('message.txt', 'r').read()
-msg2bin = string_to_binary(message)
-encrypt(message)
+message = str2bin(message)
+print("Plaintext =",d(message))
+ciphertext = encrypt(message, key)
+print("Ciphertext =", ciphertext)
+
+aa = []
+aa.extend([int(x) for x in ciphertext])
+
+print("Plaintext =",decrypt(aa, key))
