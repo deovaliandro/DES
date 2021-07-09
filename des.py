@@ -73,14 +73,17 @@ def key_builder(ext_key):
 
 def split_message(msg):
     msg_split = []
+
+    j = 0
     for i in range(0, len(msg), 64):
-        msg_split.append(msg[:64])
+        msg_split.append(msg[i:i+64])
 
-        if len(msg_split[i]) < 64:
-            miss = 64 - len(msg_split[i])
-            padding = str(0 * miss)
-            msg_split[i].extend([int(b) for b in padding])
-
+        if len(msg_split[j]) < 64:
+            miss = 64 - len(msg_split[j])
+            padding = "".join(str(int(x*0)) for x in range(miss))
+            msg_split[j].extend([int(b) for b in padding])
+        j+=1
+        
     return msg_split
 
 
@@ -159,6 +162,7 @@ def s_box(msg):
 
 def encrypt(messages, internal_key):
     messages = split_message(messages)
+    cipher = ""
 
     for msg in messages:
         permutation = permutation_function(msg, ip)
@@ -169,22 +173,22 @@ def encrypt(messages, internal_key):
             vector_a = xor_with_key(expand, internal_key[i])
             vector_b = s_box(vector_a)
             pb = permutation_function(vector_b, permutation_box)
-            # print(d(expand), d(vector_a), d(vector_b), d(pb))
             temp = right
             right = []
             for k in range(len(pb)):
                 right.append(pb[k] ^ left[k])
             left = temp
-            # print(d(left), d(right))
 
-    raw = right + left
-    final = permutation_function(raw, ip_inv)
+        raw = right + left
+        final = permutation_function(raw, ip_inv)
+        cipher += "".join(str(x) for x in final)
 
-    return "".join(str(x) for x in final)
+    return cipher
 
 
 def decrypt(messages, internal_key):
     messages = split_message(messages)
+    plaintext = ""
 
     for msg in messages:
         permutation = permutation_function(msg, ip)
@@ -195,18 +199,17 @@ def decrypt(messages, internal_key):
             vector_a = xor_with_key(expand, internal_key[i])
             vector_b = s_box(vector_a)
             pb = permutation_function(vector_b, permutation_box)
-            # print(d(expand), d(vector_a), d(vector_b), d(pb))
             temp = right
             right = []
             for k in range(len(pb)):
                 right.append(pb[k] ^ left[k])
             left = temp
-            # print(d(left), d(right))
 
-    raw = right + left
-    final = permutation_function(raw, ip_inv)
+        raw = right + left
+        final = permutation_function(raw, ip_inv)
+        plaintext += "".join(str(x) for x in final)
 
-    return "".join(str(x) for x in final)
+    return plaintext
 
 
 # open key
@@ -214,14 +217,17 @@ externalKey = open('pass.txt', 'r').read()
 key_in_binary = str2bin(externalKey)
 key = key_builder(key_in_binary)
 
-message = open('message.txt', 'r').read()
+# message = open('message.txt', 'r').read()
+# message = str2bin(message)
+
+message = open('example.json', 'r').read()
 message = str2bin(message)
 
-print("Plaintext =",d(message))
 ciphertext = encrypt(message, key)
 print("Ciphertext =", ciphertext)
 
 aa = []
 aa.extend([int(x) for x in ciphertext])
 
+print("Plaintext =",d(message))
 print("Plaintext =",decrypt(aa, key))
