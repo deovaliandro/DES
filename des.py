@@ -17,18 +17,31 @@ permutation_box = [16, 7, 20, 21, 29, 12, 28, 17, 1, 15, 23, 26, 5, 18, 31, 10,
                    2, 8, 24, 14, 32, 27, 3, 9, 19, 13, 30, 6, 22, 11, 4, 25]
 
 
-# array of bit to string
 def d(lis):
+    """
+    show list in string
+    :param lis:
+    :return: string
+    """
     return "".join(str(x) for x in lis)
 
 
-# left shift rotate
-def lsf(data, n):
+def rotate_left(data, n):
+    """
+    left shift 
+    :param data:
+    :param n:
+    :return: array of data
+    """
     return data[n:] + data[:n]
 
 
-# string to binary
 def str2bin(msg):
+    """
+    string to binary
+    :param msg: 
+    :return: array of binary
+    """
     dummy = []
     for i in range(len(msg)):
         bits = bin(ord(msg[i]))[2:]
@@ -38,6 +51,11 @@ def str2bin(msg):
 
 
 def key_builder(ext_key):
+    """
+    build internal key from external key
+    :param ext_key: 
+    :return: key 
+    """
     pc1 = [57, 49, 41, 33, 25, 17, 9, 1, 58, 50, 42, 34, 26, 18,
            10, 2, 59, 51, 43, 35, 27, 19, 11, 3, 60, 52, 44, 36,
            63, 55, 47, 39, 31, 23, 15, 7, 62, 54, 46, 38, 30, 22,
@@ -60,8 +78,8 @@ def key_builder(ext_key):
     right = raw_result[28:]
 
     for i in range(len(key_round)):
-        left = lsf(left, key_round[i])
-        right = lsf(right, key_round[i])
+        left = rotate_left(left, key_round[i])
+        right = rotate_left(right, key_round[i])
         ki = left + right
         aur = []
         for j in range(len(pc2)):
@@ -72,22 +90,33 @@ def key_builder(ext_key):
 
 
 def split_message(msg):
+    """
+    split message to list, each index have 64-bit data
+    :param msg:
+    :return: msg_split
+    """
     msg_split = []
 
     j = 0
     for i in range(0, len(msg), 64):
-        msg_split.append(msg[i:i+64])
+        msg_split.append(msg[i:i + 64])
 
         if len(msg_split[j]) < 64:
             miss = 64 - len(msg_split[j])
-            padding = "".join(str(int(x*0)) for x in range(miss))
+            padding = "".join(str(int(x * 0)) for x in range(miss))
             msg_split[j].extend([int(b) for b in padding])
-        j+=1
-        
+        j += 1
+
     return msg_split
 
 
 def permutation_function(msg, table):
+    """
+    permutation array of message by table
+    :param msg: 
+    :param table: 
+    :return: array
+    """
     dummy = []
     for i in range(len(table)):
         dummy.append(msg[table[i] - 1])
@@ -96,6 +125,12 @@ def permutation_function(msg, table):
 
 
 def xor_with_key(msg, key_f):
+    """
+    xor message with key
+    :param msg: 
+    :param key_f: 
+    :return: array
+    """
     dummy = []
     for i in range(len(msg)):
         dummy.append(msg[i] ^ key_f[i])
@@ -104,6 +139,11 @@ def xor_with_key(msg, key_f):
 
 
 def s_box(msg):
+    """
+    permutation data with s-box
+    :param msg: 
+    :return: array
+    """
     s1 = [[14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7, ],
           [0, 15, 7, 4, 14, 2, 13, 1, 10, 6, 12, 11, 9, 5, 3, 8, ],
           [4, 1, 14, 8, 13, 6, 2, 11, 15, 12, 9, 7, 3, 10, 5, 0, ],
@@ -161,6 +201,12 @@ def s_box(msg):
 
 
 def encrypt(messages, internal_key):
+    """
+    encrypt message with key
+    :param messages: 
+    :param internal_key: 
+    :return: ciphertext
+    """
     messages = split_message(messages)
     cipher = ""
 
@@ -187,13 +233,19 @@ def encrypt(messages, internal_key):
 
 
 def decrypt(messages, internal_key):
+    """
+    decrypt ciphertext by key
+    :param messages: 
+    :param internal_key: 
+    :return: plaintext
+    """
     messages = split_message(messages)
     plaintext = ""
 
     for msg in messages:
         permutation = permutation_function(msg, ip)
         left, right = permutation[:32], permutation[32:]
-        
+
         for i in range(15, -1, -1):
             expand = permutation_function(right, expansion)
             vector_a = xor_with_key(expand, internal_key[i])
@@ -217,17 +269,21 @@ externalKey = open('pass.txt', 'r').read()
 key_in_binary = str2bin(externalKey)
 key = key_builder(key_in_binary)
 
+# message 8-byte (text)
 # message = open('message.txt', 'r').read()
 # message = str2bin(message)
 
+# message in json (more than 8-byte)
 message = open('example.json', 'r').read()
 message = str2bin(message)
 
+# encrypt message
 ciphertext = encrypt(message, key)
 print("Ciphertext =", ciphertext)
 
 aa = []
 aa.extend([int(x) for x in ciphertext])
 
-print("Plaintext =",d(message))
-print("Plaintext =",decrypt(aa, key))
+# decrypt message
+print("Plaintext =", d(message))
+print("Plaintext =", decrypt(aa, key))
